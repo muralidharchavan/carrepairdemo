@@ -55,6 +55,13 @@ integration:
       account-name: App Connect Trial
       actions:
         GETTONEANALYSIS: {}
+    action-interface-5:
+      type: api-action
+      business-object: Contact
+      connector-type: salesforce
+      account-name: App Connect Trial
+      actions:
+        RETRIEVEALL: {}
   assemblies:
     assembly-1:
       assembly:
@@ -146,6 +153,26 @@ integration:
               else:
                 execute: []
               output-schema: {}
+          - retrieve-action:
+              name: Salesforce Retrieve contacts
+              target:
+                $ref: '#/integration/action-interfaces/action-interface-5'
+              filter:
+                where:
+                  Name: Andy Young
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: IBMWatsonVisualRecognitionClassifyimages
+                    $ref: >-
+                      #/node-output/IBM Watson Visual Recognition Classify
+                      images/response/payload
+                  - variable: Setvariable
+                    $ref: '#/node-output/Set variable/response/payload'
+                limit: 1
+              allow-truncation: false
+              pagination-type: TOKEN
+              allow-empty-output: false
           - create-action:
               name: Salesforce Create case
               target:
@@ -153,7 +180,7 @@ integration:
               map:
                 mappings:
                   - ContactId:
-                      template: 0033z00002d9jSFAAY
+                      template: '{{$SalesforceRetrievecontacts.Id}}'
                   - Description:
                       template: '{{$Request.DescriptionOfDamage}}'
                   - EngineeringReqNumber__c:
@@ -186,6 +213,12 @@ integration:
                       images/response/payload
                   - variable: Setvariable
                     $ref: '#/node-output/Set variable/response/payload'
+                  - variable: SalesforceRetrievecontacts
+                    $ref: >-
+                      #/node-output/Salesforce Retrieve
+                      contacts/response/payload
+                  - variable: SalesforceRetrievecontactsMetadata
+                    $ref: '#/node-output/Salesforce Retrieve contacts/response'
           - custom-action:
               name: IBM Watson Tone Analyzer Get tone analysis
               target:
