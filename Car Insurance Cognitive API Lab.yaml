@@ -41,13 +41,6 @@ integration:
       account-name: App Connect Trial
       actions:
         CLASSIFYIMAGES: {}
-    action-interface-4:
-      type: api-action
-      business-object: Case
-      connector-type: salesforce
-      account-name: App Connect Trial
-      actions:
-        UPDATEALL: {}
     action-interface-5:
       type: api-action
       business-object: Translate
@@ -73,6 +66,20 @@ integration:
       type: api-action
       business-object: sys_attachment
       connector-type: servicenow
+      account-name: App Connect Trial
+      actions:
+        CREATE: {}
+    action-interface-9:
+      type: api-action
+      business-object: Contact
+      connector-type: salesforce
+      account-name: App Connect Trial
+      actions:
+        RETRIEVEALL: {}
+    action-interface-4:
+      type: api-action
+      business-object: CaseComment
+      connector-type: salesforce
       account-name: App Connect Trial
       actions:
         CREATE: {}
@@ -167,6 +174,26 @@ integration:
               else:
                 execute: []
               output-schema: {}
+          - retrieve-action:
+              name: Salesforce Retrieve contacts
+              target:
+                $ref: '#/integration/action-interfaces/action-interface-9'
+              filter:
+                where:
+                  Name: Andy Young
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: IBMWatsonVisualRecognitionClassifyimages
+                    $ref: >-
+                      #/node-output/IBM Watson Visual Recognition Classify
+                      images/response/payload
+                  - variable: Setvariable
+                    $ref: '#/node-output/Set variable/response/payload'
+                limit: 1
+              allow-truncation: false
+              pagination-type: TOKEN
+              allow-empty-output: false
           - create-action:
               name: Salesforce Create case
               target:
@@ -174,7 +201,7 @@ integration:
               map:
                 mappings:
                   - ContactId:
-                      template: 0033z00002d9jSFAAY
+                      template: '{{$SalesforceRetrievecontacts.Id}}'
                   - Description:
                       template: '{{$Request.DescriptionOfDamage}}'
                   - EngineeringReqNumber__c:
@@ -207,6 +234,12 @@ integration:
                       images/response/payload
                   - variable: Setvariable
                     $ref: '#/node-output/Set variable/response/payload'
+                  - variable: SalesforceRetrievecontacts
+                    $ref: >-
+                      #/node-output/Salesforce Retrieve
+                      contacts/response/payload
+                  - variable: SalesforceRetrievecontactsMetadata
+                    $ref: '#/node-output/Salesforce Retrieve contacts/response'
           - custom-action:
               name: IBM Watson Tone Analyzer Get tone analysis
               target:
@@ -236,6 +269,42 @@ integration:
                     $ref: '#/node-output/Set variable/response/payload'
                   - variable: SalesforceCreatecase
                     $ref: '#/node-output/Salesforce Create case/response/payload'
+          - create-action:
+              name: Salesforce Create case comment
+              target:
+                $ref: '#/integration/action-interfaces/action-interface-4'
+              map:
+                mappings:
+                  - CommentBody:
+                      template: >-
+                        Watson Analysis: Customer emotion is
+                        {{$IBMWatsonToneAnalyzerGettoneanalysis.dominant_tones.document_tone.emotion_tone.tone_name}} 
+                  - IsPublished:
+                      expression: 'true'
+                  - ParentId:
+                      template: '{{$SalesforceCreatecase}}'
+                $map: 'http://ibm.com/appconnect/map/v1'
+                input:
+                  - variable: Request
+                    $ref: '#/trigger/payload'
+                  - variable: IBMWatsonVisualRecognitionClassifyimages
+                    $ref: >-
+                      #/node-output/IBM Watson Visual Recognition Classify
+                      images/response/payload
+                  - variable: Setvariable
+                    $ref: '#/node-output/Set variable/response/payload'
+                  - variable: SalesforceRetrievecontacts
+                    $ref: >-
+                      #/node-output/Salesforce Retrieve
+                      contacts/response/payload
+                  - variable: SalesforceRetrievecontactsMetadata
+                    $ref: '#/node-output/Salesforce Retrieve contacts/response'
+                  - variable: SalesforceCreatecase
+                    $ref: '#/node-output/Salesforce Create case/response/payload'
+                  - variable: IBMWatsonToneAnalyzerGettoneanalysis
+                    $ref: >-
+                      #/node-output/IBM Watson Tone Analyzer Get tone
+                      analysis/response/payload
           - create-action:
               name: Salesforce Create attachment
               target:
@@ -270,55 +339,6 @@ integration:
                     $ref: >-
                       #/node-output/IBM Watson Tone Analyzer Get tone
                       analysis/response/payload
-          - update-action:
-              name: Salesforce Update case
-              target:
-                $ref: '#/integration/action-interfaces/action-interface-4'
-              map:
-                $map: 'http://ibm.com/appconnect/map/v1'
-                input:
-                  - variable: Request
-                    $ref: '#/trigger/payload'
-                  - variable: IBMWatsonVisualRecognitionClassifyimages
-                    $ref: >-
-                      #/node-output/IBM Watson Visual Recognition Classify
-                      images/response/payload
-                  - variable: Setvariable
-                    $ref: '#/node-output/Set variable/response/payload'
-                  - variable: SalesforceCreatecase
-                    $ref: '#/node-output/Salesforce Create case/response/payload'
-                  - variable: IBMWatsonToneAnalyzerGettoneanalysis
-                    $ref: >-
-                      #/node-output/IBM Watson Tone Analyzer Get tone
-                      analysis/response/payload
-                  - variable: SalesforceCreateattachment
-                    $ref: >-
-                      #/node-output/Salesforce Create
-                      attachment/response/payload
-                mappings: []
-              filter:
-                where:
-                  Id: '{{$SalesforceCreatecase.Id}}'
-                input:
-                  - variable: Request
-                    $ref: '#/trigger/payload'
-                  - variable: IBMWatsonVisualRecognitionClassifyimages
-                    $ref: >-
-                      #/node-output/IBM Watson Visual Recognition Classify
-                      images/response/payload
-                  - variable: Setvariable
-                    $ref: '#/node-output/Set variable/response/payload'
-                  - variable: SalesforceCreatecase
-                    $ref: '#/node-output/Salesforce Create case/response/payload'
-                  - variable: IBMWatsonToneAnalyzerGettoneanalysis
-                    $ref: >-
-                      #/node-output/IBM Watson Tone Analyzer Get tone
-                      analysis/response/payload
-                  - variable: SalesforceCreateattachment
-                    $ref: >-
-                      #/node-output/Salesforce Create
-                      attachment/response/payload
-              allow-empty-output: false
           - if:
               name: If 3
               input:
@@ -690,6 +710,8 @@ integration:
                       $ref: '#/node-output/Salesforce Update case/response'
                     - variable: If3
                       $ref: '#/node-output/If 3/response/payload'
+        tags:
+          - incomplete
   name: Car Insurance Cognitive API Lab
 models:
   CarRepairClaim:
